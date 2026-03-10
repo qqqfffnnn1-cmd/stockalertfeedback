@@ -131,7 +131,7 @@
       <textarea name="note" placeholder="补充说明（可选）">{{ prefill.note if prefill else '' }}</textarea>
     </div>
 
-    <button type="submit">提交反馈</button>
+    <button type="submit" onclick="return validateForm()">提交反馈</button>
   </form>
 </div>
 
@@ -154,12 +154,25 @@ async function fetchStocks(q) {
   const res = await fetch('/api/stock-search?q=' + encodeURIComponent(q));
   const data = await res.json();
   if (!data.length) { dropdown.style.display = 'none'; return; }
-  dropdown.innerHTML = data.map(s =>
-    `<div class="dropdown-item" onclick="selectStock('${s.name}','${s.code}')">
+  dropdown.innerHTML = data.map((s, i) =>
+    `<div class="dropdown-item" data-idx="${i}" data-name="${s.name.replace(/"/g,'&quot;')}" data-code="${s.code}">
       ${s.name}<span class="code">${s.code} ${s.type}</span>
     </div>`
   ).join('');
   dropdown.style.display = 'block';
+  dropdown.querySelectorAll('.dropdown-item').forEach(el => {
+    el.addEventListener('click', () => selectStock(el.dataset.name, el.dataset.code));
+  });
+}
+
+function validateForm() {
+  if (!document.getElementById('stock_code').value) {
+    alert('请从下拉菜单选择股票'); return false;
+  }
+  if (!document.getElementById('feedback_type').value) {
+    alert('请选择反馈类型（漏报/错报）'); return false;
+  }
+  return true;
 }
 
 function selectStock(name, code) {
