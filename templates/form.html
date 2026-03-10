@@ -50,6 +50,19 @@
   .type-btn.active-miss { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
   .type-btn.active-wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
   input[name=feedback_type] { display: none; }
+  .modal-overlay { display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.4); z-index: 100;
+    align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 16px; padding: 40px 36px;
+    text-align: center; max-width: 320px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+  .modal-icon { font-size: 48px; margin-bottom: 16px; }
+  .modal h2 { font-size: 18px; color: #111; margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: #666; margin-bottom: 24px; }
+  .modal button { padding: 10px 32px; background: #4f46e5; color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
+  .modal button:hover { background: #4338ca; }
 </style>
 </head>
 <body>
@@ -62,8 +75,7 @@
   {% if success %}
   <div class="success">✓ 提交成功，感谢反馈！</div>
   {% endif %}
-  {% if error %}
-  <div class="error-msg">{{ error }}</div>
+  {% if error %}  <div class="error-msg">{{ error }}</div>
   {% endif %}
 
   <form method="post" action="/submit" autocomplete="off">
@@ -169,6 +181,19 @@ function setType(type, el) {
   });
   el.classList.add(type === '漏报' ? 'active-miss' : 'active-wrong');
 }
+
+{% if success %}
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('successModal').classList.add('show');
+});
+{% endif %}
 </script>
-</body>
-</html>
+
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <div class="modal-icon">✅</div>
+    <h2>提交成功！</h2>
+    <p>感谢你的反馈，我们会在收盘后统一处理。</p>
+    <button onclick="document.getElementById('successModal').classList.remove('show')">确定</button>
+  </div>
+</div>
