@@ -82,24 +82,34 @@ def submit():
 @app.route("/api/stock-search")
 @require_login
 def stock_search():
+    import re as _re
     q = request.args.get("q", "").strip()
     if not q:
         return jsonify([])
     try:
-        url = "https://suggest3.eastmoney.com/api/suggest/get"
+        url = "https://searchapi.eastmoney.com/api/suggest/get"
         params = {
             "input": q,
             "type": "14",
             "token": "D43BF722C8E33BDC906FB84D85E326E8",
-            "count": "8",
+            "count": "10",
+            "cb": "cb",
         }
-        r = requests.get(url, params=params, timeout=5,
-                         headers={"User-Agent": "Mozilla/5.0"})
-        items = r.json().get("QuotationCodeTable", {}).get("Data", []) or []
+        r = requests.get(url, params=params, timeout=8,
+                         headers={"User-Agent": "Mozilla/5.0",
+                                  "Referer": "https://www.eastmoney.com"})
+        m = _re.search(r"cb\((.*)\)", r.text, _re.DOTALL)
+        if not m:
+            return jsonify([])
+        import json as _json
+        data = _json.loads(m.group(1))
+        items = data.get("QuotationCodeTable", {}).get("Data", []) or []
+        ALLOWED = {"沪A", "深A", "创业板", "科创板", "港股", "北交所"}
         results = [
-            {"name": i["Name"], "code": i["Code"]}
+            {"name": i["Name"], "code": i["Code"],
+             "type": i.get("SecurityTypeName", "")}
             for i in items
-            if i.get("SecurityTypeName") in ("沪A", "深A", "创业板", "科创板")
+            if i.get("SecurityTypeName") in ALLOWED
         ]
         return jsonify(results)
     except Exception:

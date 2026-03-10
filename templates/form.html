@@ -156,7 +156,7 @@ async function fetchStocks(q) {
   if (!data.length) { dropdown.style.display = 'none'; return; }
   dropdown.innerHTML = data.map(s =>
     `<div class="dropdown-item" onclick="selectStock('${s.name}','${s.code}')">
-      ${s.name}<span class="code">${s.code}</span>
+      ${s.name}<span class="code">${s.code} ${s.type}</span>
     </div>`
   ).join('');
   dropdown.style.display = 'block';
