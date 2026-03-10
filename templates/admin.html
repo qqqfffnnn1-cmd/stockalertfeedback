@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>异动反馈 — 管理员</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: #f5f5f5; padding: 32px 16px; }
+  .header { max-width: 960px; margin: 0 auto 24px;
+    display: flex; justify-content: space-between; align-items: center; }
+  h1 { font-size: 20px; color: #111; }
+  .header a { font-size: 13px; color: #888; text-decoration: none; }
+  .header a:hover { color: #4f46e5; }
+  .stats { max-width: 960px; margin: 0 auto 20px;
+    display: flex; gap: 12px; }
+  .stat { background: #fff; border-radius: 10px; padding: 16px 20px;
+    flex: 1; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .stat .num { font-size: 28px; font-weight: 600; color: #4f46e5; }
+  .stat .label { font-size: 13px; color: #888; margin-top: 2px; }
+  table { width: 100%; max-width: 960px; margin: 0 auto;
+    background: #fff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,.08); border-collapse: collapse; }
+  th { background: #f9fafb; padding: 12px 16px; text-align: left;
+    font-size: 13px; color: #555; font-weight: 500; border-bottom: 1px solid #eee; }
+  td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f3f4f6;
+    vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 500; }
+  .badge-miss { background: #fef3c7; color: #92400e; }
+  .badge-wrong { background: #fee2e2; color: #991b1b; }
+  .time { color: #888; font-size: 13px; }
+  .note { color: #666; font-size: 13px; max-width: 200px; }
+  .del-btn { background: none; border: none; color: #ccc; cursor: pointer;
+    font-size: 16px; padding: 2px 6px; border-radius: 4px; }
+  .del-btn:hover { color: #ef4444; background: #fee2e2; }
+  .empty { text-align: center; padding: 48px; color: #aaa; font-size: 15px; }
+  .filter-bar { max-width: 960px; margin: 0 auto 16px;
+    display: flex; gap: 10px; align-items: center; }
+  .filter-bar input { padding: 8px 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 14px; outline: none; width: 200px; }
+  .filter-bar select { padding: 8px 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 14px; outline: none; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>异动反馈汇总</h1>
+  <div style="display:flex;gap:16px;">
+    <a href="/">提交页面</a>
+    <a href="/logout">退出</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="num">{{ rows|length }}</div>
+    <div class="label">总反馈数</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ rows|selectattr('feedback_type','eq','漏报')|list|length }}</div>
+    <div class="label">漏报</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ rows|selectattr('feedback_type','eq','错报')|list|length }}</div>
+    <div class="label">错报</div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="search" placeholder="搜索股票/用户名...">
+  <select id="type-filter">
+    <option value="">全部类型</option>
+    <option value="漏报">漏报</option>
+    <option value="错报">错报</option>
+  </select>
+</div>
+
+{% if rows %}
+<table id="table">
+  <thead>
+    <tr>
+      <th>时间</th>
+      <th>用户</th>
+      <th>股票</th>
+      <th>类型</th>
+      <th>异动时段</th>
+      <th>备注</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr data-name="{{ r.stock_name }}" data-user="{{ r.username }}" data-type="{{ r.feedback_type }}">
+      <td class="time">{{ r.created_at[:16].replace('T',' ') }}</td>
+      <td>{{ r.username }}</td>
+      <td><strong>{{ r.stock_name }}</strong><br><span class="time">{{ r.stock_code }}</span></td>
+      <td><span class="badge {{ 'badge-miss' if r.feedback_type == '漏报' else 'badge-wrong' }}">
+        {{ r.feedback_type }}</span></td>
+      <td class="time">{{ r.time_start }} — {{ r.time_end }}</td>
+      <td class="note">{{ r.note or '—' }}</td>
+      <td>
+        <form method="post" action="/admin/delete/{{ r.id }}"
+              onsubmit="return confirm('确认删除？')">
+          <button class="del-btn" type="submit">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">暂无反馈记录</div>
+{% endif %}
+
+<script>
+const search = document.getElementById('search');
+const typeFilter = document.getElementById('type-filter');
+function filterTable() {
+  const q = search.value.toLowerCase();
+  const t = typeFilter.value;
+  document.querySelectorAll('#table tbody tr').forEach(row => {
+    const name = row.dataset.name.toLowerCase();
+    const user = row.dataset.user.toLowerCase();
+    const type = row.dataset.type;
+    const matchQ = !q || name.includes(q) || user.includes(q);
+    const matchT = !t || type === t;
+    row.style.display = matchQ && matchT ? '' : 'none';
+  });
+}
+search.addEventListener('input', filterTable);
+typeFilter.addEventListener('change', filterTable);
+</script>
+</body>
+</html>
